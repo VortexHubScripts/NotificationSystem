@@ -327,45 +327,33 @@ end
 
 local notificationOrder = 0
 
+-- MakeNotification with smooth bottom-to-top stacking
 function lib:MakeNotification(nt)
     nt = nt or {Title = "Notification", Text = "This is a test notification.", Duration = 5}
-
     local holder = Converted["_Container"]
-    notificationOrder = notificationOrder + 1
 
-    -- Manage notification limit
-    local existingNotifs = {}
-    for _, child in ipairs(holder:GetChildren()) do
-        if child:IsA("Frame") and child.Visible and child.Name == "ActiveNotification" then
-            table.insert(existingNotifs, child)
-        end
-    end
-
-    table.sort(existingNotifs, function(a, b) return a.LayoutOrder < b.LayoutOrder end)
-
-    if #existingNotifs >= 4 then
-        local oldest = existingNotifs[1]
-        task.spawn(function()
-            animateNotification(oldest, nil, "out")
-            task.wait(0.5)
-            if oldest.Parent then oldest:Destroy() end
-        end)
-    end
-
-    -- Create notification
+    -- Create new notification
     local newNotif = baseNotif:Clone()
     newNotif.Parent = holder
     newNotif.Title.Text = nt.Title or "Notification"
     newNotif.Description.Text = nt.Text or "No message provided."
     newNotif.Visible = true
     newNotif.Name = "ActiveNotification"
-    newNotif.LayoutOrder = notificationOrder
 
-    -- Remove manual Positioning so UIListLayout stacks them automatically
-    newNotif.AnchorPoint = Vector2.new(0, 0)
-    newNotif.Position = UDim2.new(0, 0, 0, 0)
+    -- Increment LayoutOrder for stacking
+    notificationOrder = notificationOrder + 1
+    newNotif.LayoutOrder = 0 -- Always 0 so it stays at the bottom
+    for _, notif in ipairs(holder:GetChildren()) do
+        if notif:IsA("Frame") and notif.Name == "ActiveNotification" and notif ~= newNotif then
+            notif.LayoutOrder = notif.LayoutOrder + 1 -- Move older notifications up
+            -- Tween movement up smoothly
+            TweenService:Create(notif, TweenInfo.new(0.4, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+                Position = UDim2.new(0, 0, 0, 0) -- UIListLayout handles exact placement
+            }):Play()
+        end
+    end
 
-    -- Close button functionality
+    -- Close button
     local closeBtn = newNotif:FindFirstChild("CloseButton")
     if closeBtn then
         closeBtn.MouseButton1Click:Connect(function()
@@ -390,7 +378,7 @@ function lib:MakeNotification(nt)
         end)
     end
 
-    -- Animate in
+    -- Animate the new notification in
     animateNotification(newNotif, nt.Duration, "in")
 
     -- Auto-dismiss
@@ -404,6 +392,5 @@ function lib:MakeNotification(nt)
 
     return newNotif
 end
-
 
 return lib
