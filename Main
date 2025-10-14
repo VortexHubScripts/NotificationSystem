@@ -1,268 +1,170 @@
---// Enhanced Notification Library v5 (v3-style, stacking properly)
+--// Load the Enhanced Notification Library v5 in v2 style
+local fnl = (function()
+    local lib = {}
+    local TweenService = game:GetService("TweenService")
 
-local lib = {}
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
+    local Converted = {
+        ["_ScreenGui"] = Instance.new("ScreenGui");
+        ["_Notifications"] = Instance.new("Frame");
+        ["_Template"] = Instance.new("Frame");
+        ["_UICorner"] = Instance.new("UICorner");
+        ["_Title"] = Instance.new("TextLabel");
+        ["_Description"] = Instance.new("TextLabel");
+        ["_UIListLayout"] = Instance.new("UIListLayout");
+        ["_Accent"] = Instance.new("Frame");
+        ["_AccentCorner"] = Instance.new("UICorner");
+        ["_Glow"] = Instance.new("ImageLabel");
+        ["_ProgressBar"] = Instance.new("Frame");
+        ["_ProgressFill"] = Instance.new("Frame");
+        ["_ProgressCorner"] = Instance.new("UICorner");
+    }
 
-local Converted = {
-	["_ScreenGui"] = Instance.new("ScreenGui");
-	["_Container"] = Instance.new("Frame");
-	["_Template"] = Instance.new("Frame");
-	["_UICorner"] = Instance.new("UICorner");
-	["_Title"] = Instance.new("TextLabel");
-	["_Description"] = Instance.new("TextLabel");
-	["_Icon"] = Instance.new("ImageLabel");
-	["_IconCorner"] = Instance.new("UICorner");
-	["_UIStroke"] = Instance.new("UIStroke");
-	["_UIListLayout"] = Instance.new("UIListLayout");
-	["_Accent"] = Instance.new("Frame");
-	["_Glow"] = Instance.new("ImageLabel");
-	["_ProgressBar"] = Instance.new("Frame");
-	["_ProgressFill"] = Instance.new("Frame");
-	["_CloseButton"] = Instance.new("TextButton");
-	["_CloseCorner"] = Instance.new("UICorner");
-}
+    local function HideUi(uiElement)
+        if gethui then
+            uiElement.Parent = gethui()
+            return true
+        elseif (syn and syn.protect_gui) then
+            syn.protect_gui(uiElement)
+            uiElement.Parent = game:GetService("CoreGui")
+            return true
+        end
+        return false
+    end
 
--- Utility to parent GUI securely
-local function HideUi(uiElement)
-	if gethui then
-		uiElement.Parent = gethui()
-		return true
-	end
-	if (syn and syn.protect_gui) then
-		syn.protect_gui(uiElement)
-		uiElement.Parent = game:GetService("CoreGui")
-		return true
-	end
-	uiElement.Parent = game:GetService("CoreGui")
-	return false
+    local function RandomString(len)
+        len = len or 32
+        local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        local str = ""
+        for i = 1, len do
+            str = str .. chars:sub(math.random(1, #chars), math.random(1, #chars))
+        end
+        return str
+    end
+
+    -- ScreenGui
+    local sg = Converted["_ScreenGui"]
+    sg.DisplayOrder = 999999999
+    sg.ResetOnSpawn = false
+    sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    sg.Name = RandomString()
+    HideUi(sg)
+
+    -- Notifications container
+    local holder = Converted["_Notifications"]
+    holder.AnchorPoint = Vector2.new(1, 1)
+    holder.BackgroundTransparency = 1
+    holder.Position = UDim2.new(1, -25, 1, -25)
+    holder.Size = UDim2.new(0, 340, 0, 600)
+    holder.Name = "Notifications"
+    holder.Parent = sg
+
+    -- Template
+    local template = Converted["_Template"]
+    template.AnchorPoint = Vector2.new(0.5, 0.5)
+    template.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+    template.BackgroundTransparency = 0.15
+    template.BorderSizePixel = 0
+    template.Position = UDim2.new(0.5, 0, 0.915, 0)
+    template.Size = UDim2.new(0, 340, 0, 100)
+    template.Visible = false
+    template.ZIndex = 100
+    template.Name = "Template"
+    template.Parent = holder
+
+    -- UICorner
+    Converted["_UICorner"].CornerRadius = UDim.new(0, 14)
+    Converted["_UICorner"].Parent = template
+
+    -- Title
+    local titleLabel = Converted["_Title"]
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Text = "Notification"
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextSize = 16
+    titleLabel.TextWrapped = true
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Position = UDim2.new(0, 62, 0, 18)
+    titleLabel.Size = UDim2.new(1, -78, 0, 20)
+    titleLabel.Parent = template
+
+    -- Description
+    local descLabel = Converted["_Description"]
+    descLabel.Font = Enum.Font.Gotham
+    descLabel.Text = "This is your notification message"
+    descLabel.TextColor3 = Color3.fromRGB(220, 220, 225)
+    descLabel.TextSize = 14
+    descLabel.TextWrapped = true
+    descLabel.TextXAlignment = Enum.TextXAlignment.Left
+    descLabel.TextYAlignment = Enum.TextYAlignment.Top
+    descLabel.BackgroundTransparency = 1
+    descLabel.Position = UDim2.new(0, 62, 0, 43)
+    descLabel.Size = UDim2.new(1, -78, 0, 42)
+    descLabel.Parent = template
+
+    -- UIListLayout for stacking
+    local layout = Converted["_UIListLayout"]
+    layout.Padding = UDim.new(0, 10)
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+    layout.Parent = holder
+
+    local baseNotif = template
+    local notificationOrder = 0
+
+    -- Animate notification
+    local function animateNotification(notif, duration, dir)
+        dir = dir or "in"
+        local tweenInfo
+        if dir == "in" then
+            notif.Position = UDim2.new(1.5, 0, notif.Position.Y.Scale, notif.Position.Y.Offset)
+            notif.BackgroundTransparency = 1
+            tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+            TweenService:Create(notif, tweenInfo, {Position = UDim2.new(0.5, 0, notif.Position.Y.Scale, notif.Position.Y.Offset), BackgroundTransparency = 0.15}):Play()
+        else
+            tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+            TweenService:Create(notif, tweenInfo, {Position = UDim2.new(1.5, 0, notif.Position.Y.Scale, notif.Position.Y.Offset), BackgroundTransparency = 1}):Play()
+        end
+    end
+
+    -- Main notification function
+    function lib:MakeNotification(nt)
+        nt = nt or { Title = "Notification", Text = "This is a test notification.", Duration = 5 }
+        notificationOrder = notificationOrder + 1
+
+        -- Create notification clone
+        local newNotif = baseNotif:Clone()
+        newNotif.Parent = holder
+        newNotif.Title.Text = nt.Title
+        newNotif.Description.Text = nt.Text
+        newNotif.Visible = true
+        newNotif.Name = "EnhancedNotification"
+        newNotif.LayoutOrder = notificationOrder
+
+        -- Animate in
+        animateNotification(newNotif, nt.Duration, "in")
+
+        -- Auto-dismiss
+        task.delay(nt.Duration, function()
+            if newNotif.Parent then
+                animateNotification(newNotif, nil, "out")
+                task.wait(0.4)
+                if newNotif.Parent then newNotif:Destroy() end
+            end
+        end)
+    end
+
+    return lib
+end)()
+
+-- Simple global helper
+function notify(title, text, duration)
+    fnl:MakeNotification({Title = title or "Notification", Text = text or "No message", Duration = duration or 5})
 end
 
--- Random string generator
-local function RandomString(len)
-	len = len or 50
-	local sets = {{97, 122}, {65, 90}, {48, 57}}
-	local str = ""
-	for i = 1, len do
-		math.randomseed(tick() * 1000 + i)
-		local charset = sets[math.random(1, #sets)]
-		str = str .. string.char(math.random(charset[1], charset[2]))
-	end
-	return str
-end
-
--- ScreenGui Setup
-Converted["_ScreenGui"].DisplayOrder = 999999999
-Converted["_ScreenGui"].ResetOnSpawn = false
-Converted["_ScreenGui"].ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-Converted["_ScreenGui"].IgnoreGuiInset = true
-Converted["_ScreenGui"].Name = RandomString(32)
-HideUi(Converted["_ScreenGui"])
-
--- Container
-Converted["_Container"].AnchorPoint = Vector2.new(1, 1)
-Converted["_Container"].BackgroundTransparency = 1
-Converted["_Container"].BorderSizePixel = 0
-Converted["_Container"].Position = UDim2.new(1, -20, 1, -20)
-Converted["_Container"].Size = UDim2.new(0, 380, 0, 700)
-Converted["_Container"].Name = "NotificationContainer"
-Converted["_Container"].Parent = Converted["_ScreenGui"]
-
--- Template
-Converted["_Template"].AnchorPoint = Vector2.new(0.5, 0.5)
-Converted["_Template"].BackgroundColor3 = Color3.fromRGB(16, 18, 24)
-Converted["_Template"].BackgroundTransparency = 0.05
-Converted["_Template"].BorderSizePixel = 0
-Converted["_Template"].Position = UDim2.new(0.5, 0, 0.5, 0)
-Converted["_Template"].Size = UDim2.new(1, 0, 0, 110)
-Converted["_Template"].Visible = false
-Converted["_Template"].ZIndex = 100
-Converted["_Template"].Name = "Template"
-Converted["_Template"].Parent = Converted["_Container"]
-
-Converted["_UICorner"].CornerRadius = UDim.new(0, 16)
-Converted["_UICorner"].Parent = Converted["_Template"]
-
--- Glow Effect
-Converted["_Glow"].Image = "rbxassetid://5028857084"
-Converted["_Glow"].ImageColor3 = Color3.fromRGB(99, 102, 241)
-Converted["_Glow"].ImageTransparency = 0.65
-Converted["_Glow"].ScaleType = Enum.ScaleType.Slice
-Converted["_Glow"].SliceCenter = Rect.new(24, 24, 276, 276)
-Converted["_Glow"].AnchorPoint = Vector2.new(0.5, 0.5)
-Converted["_Glow"].BackgroundTransparency = 1
-Converted["_Glow"].Position = UDim2.new(0.5, 0, 0.5, 0)
-Converted["_Glow"].Size = UDim2.new(1, 50, 1, 50)
-Converted["_Glow"].ZIndex = 99
-Converted["_Glow"].Name = "Glow"
-Converted["_Glow"].Parent = Converted["_Template"]
-
--- Accent Bar
-Converted["_Accent"].AnchorPoint = Vector2.new(0, 0.5)
-Converted["_Accent"].BackgroundColor3 = Color3.fromRGB(99, 102, 241)
-Converted["_Accent"].BorderSizePixel = 0
-Converted["_Accent"].Position = UDim2.new(0, 0, 0.5, 0)
-Converted["_Accent"].Size = UDim2.new(0, 4, 0, 0)
-Converted["_Accent"].ZIndex = 102
-Converted["_Accent"].Name = "Accent"
-Converted["_Accent"].Parent = Converted["_Template"]
-
-local accentCorner = Instance.new("UICorner")
-accentCorner.CornerRadius = UDim.new(1, 0)
-accentCorner.Parent = Converted["_Accent"]
-
--- Progress Bar
-Converted["_ProgressBar"].AnchorPoint = Vector2.new(0.5, 1)
-Converted["_ProgressBar"].BackgroundColor3 = Color3.fromRGB(30, 32, 40)
-Converted["_ProgressBar"].BackgroundTransparency = 0.2
-Converted["_ProgressBar"].BorderSizePixel = 0
-Converted["_ProgressBar"].Position = UDim2.new(0.5, 0, 1, 0)
-Converted["_ProgressBar"].Size = UDim2.new(1, 0, 0, 4)
-Converted["_ProgressBar"].ZIndex = 103
-Converted["_ProgressBar"].Name = "ProgressBar"
-Converted["_ProgressBar"].Parent = Converted["_Template"]
-
-Converted["_ProgressFill"].BackgroundColor3 = Color3.fromRGB(99, 102, 241)
-Converted["_ProgressFill"].BorderSizePixel = 0
-Converted["_ProgressFill"].Size = UDim2.new(1, 0, 1, 0)
-Converted["_ProgressFill"].ZIndex = 104
-Converted["_ProgressFill"].Name = "ProgressFill"
-Converted["_ProgressFill"].Parent = Converted["_ProgressBar"]
-
-local progressCorner = Instance.new("UICorner")
-progressCorner.CornerRadius = UDim.new(0, 16)
-progressCorner.Parent = Converted["_ProgressBar"]
-
--- Title
-Converted["_Title"].Font = Enum.Font.GothamBold
-Converted["_Title"].Text = "Notification"
-Converted["_Title"].TextColor3 = Color3.fromRGB(255, 255, 255)
-Converted["_Title"].TextSize = 17
-Converted["_Title"].TextWrapped = true
-Converted["_Title"].TextXAlignment = Enum.TextXAlignment.Left
-Converted["_Title"].BackgroundTransparency = 1
-Converted["_Title"].Position = UDim2.new(0, 70, 0, 22)
-Converted["_Title"].Size = UDim2.new(1, -115, 0, 22)
-Converted["_Title"].ZIndex = 105
-Converted["_Title"].Name = "Title"
-Converted["_Title"].Parent = Converted["_Template"]
-
--- Description
-Converted["_Description"].Font = Enum.Font.Gotham
-Converted["_Description"].Text = "This is your notification message"
-Converted["_Description"].TextColor3 = Color3.fromRGB(200, 205, 215)
-Converted["_Description"].TextSize = 14
-Converted["_Description"].TextTransparency = 0.15
-Converted["_Description"].TextWrapped = true
-Converted["_Description"].TextXAlignment = Enum.TextXAlignment.Left
-Converted["_Description"].TextYAlignment = Enum.TextYAlignment.Top
-Converted["_Description"].BackgroundTransparency = 1
-Converted["_Description"].Position = UDim2.new(0, 70, 0, 48)
-Converted["_Description"].Size = UDim2.new(1, -115, 0, 46)
-Converted["_Description"].ZIndex = 105
-Converted["_Description"].Name = "Description"
-Converted["_Description"].Parent = Converted["_Template"]
-
--- Icon
-Converted["_Icon"].Image = "rbxassetid://7072706001"
-Converted["_Icon"].ImageColor3 = Color3.fromRGB(255, 255, 255)
-Converted["_Icon"].AnchorPoint = Vector2.new(0.5, 0.5)
-Converted["_Icon"].BackgroundColor3 = Color3.fromRGB(99, 102, 241)
-Converted["_Icon"].BackgroundTransparency = 0.1
-Converted["_Icon"].BorderSizePixel = 0
-Converted["_Icon"].Position = UDim2.new(0, 36, 0.5, 0)
-Converted["_Icon"].Size = UDim2.new(0, 42, 0, 42)
-Converted["_Icon"].ZIndex = 105
-Converted["_Icon"].Name = "Icon"
-Converted["_Icon"].Parent = Converted["_Template"]
-
-Converted["_IconCorner"].CornerRadius = UDim.new(0, 12)
-Converted["_IconCorner"].Parent = Converted["_Icon"]
-
--- Close Button
-Converted["_CloseButton"].AnchorPoint = Vector2.new(1, 0)
-Converted["_CloseButton"].BackgroundColor3 = Color3.fromRGB(40, 42, 50)
-Converted["_CloseButton"].BackgroundTransparency = 0.3
-Converted["_CloseButton"].BorderSizePixel = 0
-Converted["_CloseButton"].Position = UDim2.new(1, -12, 0, 12)
-Converted["_CloseButton"].Size = UDim2.new(0, 28, 0, 28)
-Converted["_CloseButton"].ZIndex = 106
-Converted["_CloseButton"].Font = Enum.Font.GothamBold
-Converted["_CloseButton"].Text = "×"
-Converted["_CloseButton"].TextColor3 = Color3.fromRGB(200, 205, 215)
-Converted["_CloseButton"].TextSize = 20
-Converted["_CloseButton"].Name = "CloseButton"
-Converted["_CloseButton"].Parent = Converted["_Template"]
-
-Converted["_CloseCorner"].CornerRadius = UDim.new(0, 8)
-Converted["_CloseCorner"].Parent = Converted["_CloseButton"]
-
--- Stroke
-Converted["_UIStroke"].Color = Color3.fromRGB(60, 65, 80)
-Converted["_UIStroke"].Thickness = 1
-Converted["_UIStroke"].Transparency = 0.3
-Converted["_UIStroke"].Parent = Converted["_Template"]
-
--- List Layout
-Converted["_UIListLayout"].Padding = UDim.new(0, 12)
-Converted["_UIListLayout"].HorizontalAlignment = Enum.HorizontalAlignment.Right
-Converted["_UIListLayout"].SortOrder = Enum.SortOrder.LayoutOrder
-Converted["_UIListLayout"].VerticalAlignment = Enum.VerticalAlignment.Bottom
-Converted["_UIListLayout"].Parent = Converted["_Container"]
-
--- Base template for notifications
-local baseNotif = Converted["_Template"]
-local holder = Converted["_Container"]
-
--- Animation helper
-local function animateNotification(notif, duration, dir)
-	dir = dir or "in"
-	if dir == "in" then
-		notif.Position = UDim2.new(1.2, 0, notif.Position.Y.Scale, notif.Position.Y.Offset)
-		notif.BackgroundTransparency = 1
-		local tweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
-		TweenService:Create(notif, tweenInfo, {Position = UDim2.new(0.5, 0, notif.Position.Y.Scale, notif.Position.Y.Offset), BackgroundTransparency = 0.05}):Play()
-	else
-		local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-		TweenService:Create(notif, tweenInfo, {Position = UDim2.new(1.2, 0, notif.Position.Y.Scale, notif.Position.Y.Offset), BackgroundTransparency = 1}):Play()
-	end
-end
-
--- Main notification function
-function lib:MakeNotification(nt)
-	nt = nt or {Title = "Notification", Text = "This is a test notification.", Duration = 5}
-	local newNotif = baseNotif:Clone()
-	newNotif.Parent = holder
-	newNotif.Title.Text = nt.Title or "Notification"
-	newNotif.Description.Text = nt.Text or "No message provided."
-	newNotif.Visible = true
-	newNotif.Name = "ActiveNotification_" .. RandomString(8)
-	newNotif.LayoutOrder = -tick() -- ensure stacking order
-
-	animateNotification(newNotif, nt.Duration, "in")
-
-	local closeBtn = newNotif:FindFirstChild("CloseButton")
-	if closeBtn then
-		closeBtn.MouseButton1Click:Connect(function()
-			if newNotif.Parent then
-				animateNotification(newNotif, nil, "out")
-				task.wait(0.5)
-				if newNotif.Parent then newNotif:Destroy() end
-			end
-		end)
-	end
-
-	if nt.Duration then
-		task.delay(nt.Duration, function()
-			if newNotif and newNotif.Parent then
-				animateNotification(newNotif, nil, "out")
-				task.wait(0.5)
-				if newNotif.Parent then newNotif:Destroy() end
-			end
-		end)
-	end
-
-	return newNotif
-end
-
-return lib
+--[[ Example Usage:
+notify("Success!", "Operation completed", 4)
+task.wait(1)
+notify("Warning", "This is a warning", 5)
+--]]
