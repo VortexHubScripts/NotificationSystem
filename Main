@@ -362,7 +362,10 @@ end
 return lib
 end)()
 
---// Create a Simple Notification Function
+return fnl
+
+--[[ 
+-- Optional: Create a Simple Notification Function in your loader script
 function notify(title, text, duration)
     title = title or "Notification"
     text = text or "No message."
@@ -375,7 +378,7 @@ function notify(title, text, duration)
     })
 end
 
---[[ Example Usage
+-- Example Usage
 notify("Success!", "Operation completed successfully", 4)
 task.wait(1)
 notify("Warning", "This is a warning message", 5)
