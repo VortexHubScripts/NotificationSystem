@@ -212,27 +212,18 @@ function lib:MakeNotification(notif_table)
 	newNotif.Name = "EnhancedNotification"
 
 	local holder = Converted["_Notifications"]
-	local notifications = holder:GetChildren()
-	local numNotifications = #notifications
-
-	local layout = Converted["_UIListLayout"]
-	local layoutOrder = layout.Padding.Offset
-
-	for i, notification in ipairs(notifications) do
-		if notification ~= baseNotif and
-			notification ~= newNotif and
-			notification ~= layout
-		then
-			if numNotifications == 1 then
-				layoutOrder = layoutOrder - 1
-			else
-				layoutOrder = notification.LayoutOrder + 1
-			end
-			tween(notification, 0.25)
+	
+	-- Count existing notifications (excluding template and layout)
+	local existingNotifs = {}
+	for _, child in pairs(holder:GetChildren()) do
+		if child:IsA("Frame") and child ~= baseNotif and child.Name == "EnhancedNotification" then
+			table.insert(existingNotifs, child)
 		end
 	end
+	
+	-- Set layout order so newest is on top (highest number = bottom in VerticalAlignment.Bottom)
+	newNotif.LayoutOrder = #existingNotifs
 
-	newNotif.LayoutOrder = layoutOrder
 	tween(newNotif, 0.4, "in")
 
 	task.spawn(function()
