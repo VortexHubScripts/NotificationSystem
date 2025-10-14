@@ -238,7 +238,13 @@ function lib:MakeNotification(nt)
 	end
 
 	-- ✅ Show animation
-	tween(newNotif, 0.4, "in")
+	-- Entrance animation: slide in from right
+	newNotif.Position = UDim2.new(1.5, 0, 1, -25) -- Off-screen to the right
+	local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+	game:GetService("TweenService"):Create(newNotif, tweenInfo, {
+		Position = UDim2.new(1, -25, newNotif.Position.Y.Scale, newNotif.Position.Y.Offset) -- Final resting position
+	}):Play()
+	
 
 	task.delay(nt.Duration, function()
 		tween(newNotif, 0.3, "out")
