@@ -339,33 +339,20 @@ function lib:MakeNotification(nt)
     newNotif.Name = "ActiveNotification_" .. RandomString(8)
     
     -- Set initial properties for animation
-    newNotif.Position = UDim2.new(1.2, 0, 0, 0)
     newNotif.AnchorPoint = Vector2.new(0.5, 0.5)
+    newNotif.Position = UDim2.new(0.5, 0, 1.2, 0) -- start below the container
     newNotif.BackgroundTransparency = 1
     newNotif.Size = UDim2.new(1, -20, 0, 90)
     newNotif.Rotation = 2
+
+    -- Use LayoutOrder to control stacking automatically
+    -- Negative tick ensures newest notifications appear at the bottom (UIListLayout VerticalAlignment.Bottom)
     newNotif.LayoutOrder = -tick()
 
-    -- Shift all existing notifications up
-    local activeNotifications = {}
-    for _, notif in ipairs(holder:GetChildren()) do
-        if notif:IsA("Frame") and notif.Name:find("ActiveNotification") and notif ~= newNotif then
-            table.insert(activeNotifications, notif)
-        end
-    end
-    
-    local spacing = 12 -- same as your UIListLayout padding
-    for i, notif in ipairs(activeNotifications) do
-        local targetY = (notifHeight + spacing) * i
-        TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
-            Position = UDim2.new(0.5, 0, 0, -targetY)
-        }):Play()
-    end
-
-    -- Animate new notification in
+    -- Animate the notification in
     animateNotification(newNotif, nt.Duration, "in")
 
-    -- Close button
+    -- Close button functionality
     local closeBtn = newNotif:FindFirstChild("CloseButton")
     if closeBtn then
         closeBtn.MouseButton1Click:Connect(function()
@@ -377,7 +364,7 @@ function lib:MakeNotification(nt)
         end)
     end
 
-    -- Auto-dismiss
+    -- Auto-dismiss after duration
     if nt.Duration then
         task.delay(nt.Duration, function()
             if newNotif and newNotif.Parent then
