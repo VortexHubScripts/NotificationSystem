@@ -327,12 +327,13 @@ end
 
 local notificationOrder = 0
 
--- MakeNotification with smooth bottom-to-top stacking
+local holder = Converted["_Container"]
+local spacing = 12 -- space between notifications
+local notifHeight = 110
+
 function lib:MakeNotification(nt)
     nt = nt or {Title = "Notification", Text = "This is a test notification.", Duration = 5}
-    local holder = Converted["_Container"]
 
-    -- Create new notification
     local newNotif = baseNotif:Clone()
     newNotif.Parent = holder
     newNotif.Title.Text = nt.Title or "Notification"
@@ -340,51 +341,47 @@ function lib:MakeNotification(nt)
     newNotif.Visible = true
     newNotif.Name = "ActiveNotification"
 
-    -- Increment LayoutOrder for stacking
-    notificationOrder = notificationOrder + 1
-    newNotif.LayoutOrder = 0 -- Always 0 so it stays at the bottom
-    for _, notif in ipairs(holder:GetChildren()) do
+    -- Position new notification at bottom outside screen initially
+    newNotif.Position = UDim2.new(0, 0, 1, notifHeight + spacing)
+    newNotif.AnchorPoint = Vector2.new(0, 1)
+
+    -- Animate existing notifications up
+    for i, notif in ipairs(holder:GetChildren()) do
         if notif:IsA("Frame") and notif.Name == "ActiveNotification" and notif ~= newNotif then
-            notif.LayoutOrder = notif.LayoutOrder + 1 -- Move older notifications up
-            -- Tween movement up smoothly
+            local targetY = notif.Position.Y.Offset - (notifHeight + spacing)
             TweenService:Create(notif, TweenInfo.new(0.4, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
-                Position = UDim2.new(0, 0, 0, 0) -- UIListLayout handles exact placement
+                Position = UDim2.new(0, 0, 1, targetY)
             }):Play()
         end
     end
+
+    -- Animate new notification in
+    TweenService:Create(newNotif, TweenInfo.new(0.6, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0, 0, 1, 0)
+    }):Play()
 
     -- Close button
     local closeBtn = newNotif:FindFirstChild("CloseButton")
     if closeBtn then
         closeBtn.MouseButton1Click:Connect(function()
             if newNotif.Parent then
-                animateNotification(newNotif, nil, "out")
+                TweenService:Create(newNotif, TweenInfo.new(0.4, Enum.EasingStyle.Exponential, Enum.EasingDirection.In), {
+                    Position = UDim2.new(0, 0, 1, notifHeight + spacing),
+                    BackgroundTransparency = 1
+                }):Play()
                 task.wait(0.5)
                 if newNotif.Parent then newNotif:Destroy() end
             end
         end)
-
-        closeBtn.MouseEnter:Connect(function()
-            TweenService:Create(closeBtn, TweenInfo.new(0.2), {
-                BackgroundTransparency = 0,
-                BackgroundColor3 = Color3.fromRGB(220, 38, 38)
-            }):Play()
-        end)
-        closeBtn.MouseLeave:Connect(function()
-            TweenService:Create(closeBtn, TweenInfo.new(0.2), {
-                BackgroundTransparency = 0.3,
-                BackgroundColor3 = Color3.fromRGB(40, 42, 50)
-            }):Play()
-        end)
     end
-
-    -- Animate the new notification in
-    animateNotification(newNotif, nt.Duration, "in")
 
     -- Auto-dismiss
     task.delay(nt.Duration, function()
         if newNotif.Parent then
-            animateNotification(newNotif, nil, "out")
+            TweenService:Create(newNotif, TweenInfo.new(0.4, Enum.EasingStyle.Exponential, Enum.EasingDirection.In), {
+                Position = UDim2.new(0, 0, 1, notifHeight + spacing),
+                BackgroundTransparency = 1
+            }):Play()
             task.wait(0.5)
             if newNotif.Parent then newNotif:Destroy() end
         end
@@ -392,5 +389,6 @@ function lib:MakeNotification(nt)
 
     return newNotif
 end
+
 
 return lib
