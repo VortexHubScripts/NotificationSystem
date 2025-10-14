@@ -193,54 +193,61 @@ function tween(go, t, dir)
 	end
 end
 
-function lib:MakeNotification(nt)
-	nt = nt or { Title = "Notification", Text = "This is a test notification.", Duration = 5 }
+function lib:MakeNotification(notif_table)
+	local nt = notif_table or {
+		Title = "Notification",
+		Text = "This is a test notification.",
+		Duration = 5
+	}
+
+	local title = nt.Title
+	local text = nt.Text
+	local dur = nt.Duration
+
+	local newNotif = baseNotif:Clone()
+	newNotif.Parent = Converted["_Notifications"]
+	newNotif.Title.Text = title
+	newNotif.Description.Text = text
+	newNotif.Visible = true
+	newNotif.Name = "EnhancedNotification"
 
 	local holder = Converted["_Notifications"]
-
-	-- Collect existing visible notifications
+	local maxNotifications = 5
+	
+	-- Get all existing notifications
 	local existingNotifs = {}
-	for _, child in ipairs(holder:GetChildren()) do
-		if child:IsA("Frame") and child.Visible and child.Name == "EnhancedNotification" then
+	for _, child in pairs(holder:GetChildren()) do
+		if child:IsA("Frame") and child ~= baseNotif and child.Name == "EnhancedNotification" then
 			table.insert(existingNotifs, child)
 		end
 	end
-
-	-- ✅ Smooth upward animation for existing notifications
-	for _, notif in ipairs(existingNotifs) do
-		local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-		local newOffset = notif.Position.Y.Offset - (notif.AbsoluteSize.Y + 8) -- Move up height + padding
-		game:GetService("TweenService"):Create(notif, tweenInfo, {
-			Position = UDim2.new(0.5, 0, 0, newOffset)
-		}):Play()
+	
+	-- Sort by layout order (oldest first)
+	table.sort(existingNotifs, function(a, b)
+		return a.LayoutOrder < b.LayoutOrder
+	end)
+	
+	-- Remove oldest if we're at max capacity
+	if #existingNotifs >= maxNotifications then
+		local oldest = existingNotifs[1]
+		tween(oldest, 0.3, "out")
+		task.wait(0.3)
+		oldest:Destroy()
+		table.remove(existingNotifs, 1)
 	end
-
-	-- ✅ Clone new notification
-	local newNotif = baseNotif:Clone()
-	newNotif.Parent = holder
-	newNotif.Title.Text = nt.Title
-	newNotif.Description.Text = nt.Text
-	newNotif.Visible = true
-	newNotif.Name = "EnhancedNotification"
-	newNotif.Position = UDim2.new(0.5, 0, 0, 0) -- Always start at bottom
-
-	-- ✅ Stack order
-	newNotif.LayoutOrder = tick() -- Higher means lower in Bottom-aligned list
-
-	-- ✅ Auto-remove oldest if more than 5
-	if #existingNotifs >= 5 then
-		local oldest = existingNotifs[1] -- Lowest order
-		task.spawn(function()
-			tween(oldest, 0.3, "out")
-			task.wait(0.3)
-			oldest:Destroy()
-		end)
+	
+	-- Move all existing notifications up (increase layout order)
+	local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+	for i, notif in ipairs(existingNotifs) do
+		notif.LayoutOrder = i
 	end
-
-	-- ✅ Show animation
+	
+	-- New notification always gets layout order 0 (bottom position)
+	newNotif.LayoutOrder = 0
 	tween(newNotif, 0.4, "in")
 
-	task.delay(nt.Duration, function()
+	task.spawn(function()
+		task.wait(dur)
 		tween(newNotif, 0.3, "out")
 		task.wait(0.3)
 		newNotif:Destroy()
