@@ -1,0 +1,250 @@
+--[[
+-- = Enhanced Notification Library = --
+Modern, sleek notification system with improved visuals
+]]--
+
+local lib = {}
+
+local Converted = {
+	["_focat's notification lib"] = Instance.new("ScreenGui");
+	["_Notifications"] = Instance.new("Frame");
+	["_Template"] = Instance.new("Frame");
+	["_UICorner"] = Instance.new("UICorner");
+	["_Title"] = Instance.new("TextLabel");
+	["_Description"] = Instance.new("TextLabel");
+	["_Icon"] = Instance.new("ImageButton");
+	["_UIStroke"] = Instance.new("UIStroke");
+	["_UIListLayout"] = Instance.new("UIListLayout");
+	["_Accent"] = Instance.new("Frame");
+	["_AccentCorner"] = Instance.new("UICorner");
+}
+
+function HideUi(uiElement)
+	if gethui then
+		uiElement.Parent = gethui()
+		return true
+	end
+	if (syn and syn.protect_gui) then
+		syn.protect_gui(uiElement)
+		uiElement.Parent = game:GetService("CoreGui")
+		return true
+	end
+	return false
+end
+
+function RandomString(len)
+	if not len then len = 50 end
+	local sets = { { 97, 122 }, { 65, 90 }, { 48, 57 } }
+	local str = ""
+	for i = 1, len do
+		math.randomseed(os.clock() ^ 5)
+		local charset = sets[math.random(1, #sets)]
+		str = str .. string.char(math.random(charset[1], charset[2]))
+	end
+	return str
+end
+
+-- Properties:
+Converted["_focat's notification lib"].DisplayOrder = 999999999
+Converted["_focat's notification lib"].ResetOnSpawn = false
+Converted["_focat's notification lib"].ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Converted["_focat's notification lib"].Name = RandomString(32)
+HideUi(Converted["_focat's notification lib"])
+
+Converted["_Notifications"].AnchorPoint = Vector2.new(1, 1)
+Converted["_Notifications"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Converted["_Notifications"].BackgroundTransparency = 1
+Converted["_Notifications"].BorderSizePixel = 0
+Converted["_Notifications"].ClipsDescendants = true
+Converted["_Notifications"].Position = UDim2.new(1, -25, 1, -25)
+Converted["_Notifications"].Size = UDim2.new(0, 320, 0, 578)
+Converted["_Notifications"].Name = "Notifications"
+Converted["_Notifications"].Parent = Converted["_focat's notification lib"]
+
+-- Enhanced Template with modern design
+Converted["_Template"].AnchorPoint = Vector2.new(0.5, 0.5)
+Converted["_Template"].BackgroundColor3 = Color3.fromRGB(25, 25, 28)
+Converted["_Template"].BackgroundTransparency = 0.05
+Converted["_Template"].BorderSizePixel = 0
+Converted["_Template"].Position = UDim2.new(0.5, 0, 0.915000021, 0)
+Converted["_Template"].Size = UDim2.new(0, 320, 0, 95)
+Converted["_Template"].Visible = false
+Converted["_Template"].ZIndex = 100
+Converted["_Template"].Name = "Template"
+Converted["_Template"].Parent = Converted["_Notifications"]
+
+Converted["_UICorner"].CornerRadius = UDim.new(0, 12)
+Converted["_UICorner"].Parent = Converted["_Template"]
+
+-- Accent bar on left
+Converted["_Accent"].AnchorPoint = Vector2.new(0, 0.5)
+Converted["_Accent"].BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+Converted["_Accent"].BorderSizePixel = 0
+Converted["_Accent"].Position = UDim2.new(0, 0, 0.5, 0)
+Converted["_Accent"].Size = UDim2.new(0, 4, 1, 0)
+Converted["_Accent"].ZIndex = 101
+Converted["_Accent"].Name = "Accent"
+Converted["_Accent"].Parent = Converted["_Template"]
+
+Converted["_AccentCorner"].CornerRadius = UDim.new(0, 12)
+Converted["_AccentCorner"].Parent = Converted["_Accent"]
+
+Converted["_Title"].Font = Enum.Font.GothamBold
+Converted["_Title"].Text = "Notification"
+Converted["_Title"].TextColor3 = Color3.fromRGB(255, 255, 255)
+Converted["_Title"].TextSize = 15
+Converted["_Title"].TextWrapped = true
+Converted["_Title"].TextXAlignment = Enum.TextXAlignment.Left
+Converted["_Title"].AnchorPoint = Vector2.new(0, 0)
+Converted["_Title"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Converted["_Title"].BackgroundTransparency = 1
+Converted["_Title"].BorderSizePixel = 0
+Converted["_Title"].Position = UDim2.new(0, 48, 0, 16)
+Converted["_Title"].Size = UDim2.new(1, -64, 0, 18)
+Converted["_Title"].ZIndex = 105
+Converted["_Title"].Name = "Title"
+Converted["_Title"].Parent = Converted["_Template"]
+
+Converted["_Description"].Font = Enum.Font.Gotham
+Converted["_Description"].Text = "This is your notification message"
+Converted["_Description"].TextColor3 = Color3.fromRGB(200, 200, 200)
+Converted["_Description"].TextSize = 13
+Converted["_Description"].TextTransparency = 0.15
+Converted["_Description"].TextWrapped = true
+Converted["_Description"].TextXAlignment = Enum.TextXAlignment.Left
+Converted["_Description"].TextYAlignment = Enum.TextYAlignment.Top
+Converted["_Description"].AnchorPoint = Vector2.new(0, 0)
+Converted["_Description"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Converted["_Description"].BackgroundTransparency = 1
+Converted["_Description"].BorderSizePixel = 0
+Converted["_Description"].Position = UDim2.new(0, 48, 0, 40)
+Converted["_Description"].Size = UDim2.new(1, -64, 0, 45)
+Converted["_Description"].ZIndex = 105
+Converted["_Description"].Name = "Description"
+Converted["_Description"].Parent = Converted["_Template"]
+
+Converted["_Icon"].Image = "rbxassetid://7072706001"
+Converted["_Icon"].ImageColor3 = Color3.fromRGB(88, 101, 242)
+Converted["_Icon"].AnchorPoint = Vector2.new(0, 0)
+Converted["_Icon"].BackgroundTransparency = 1
+Converted["_Icon"].BorderSizePixel = 0
+Converted["_Icon"].Position = UDim2.new(0, 16, 0, 16)
+Converted["_Icon"].Size = UDim2.new(0, 24, 0, 24)
+Converted["_Icon"].ZIndex = 105
+Converted["_Icon"].Name = "Icon"
+Converted["_Icon"].Parent = Converted["_Template"]
+
+Converted["_UIStroke"].Color = Color3.fromRGB(60, 60, 65)
+Converted["_UIStroke"].Thickness = 1
+Converted["_UIStroke"].Transparency = 0.3
+Converted["_UIStroke"].Parent = Converted["_Template"]
+
+Converted["_UIListLayout"].Padding = UDim.new(0, 8)
+Converted["_UIListLayout"].HorizontalAlignment = Enum.HorizontalAlignment.Right
+Converted["_UIListLayout"].SortOrder = Enum.SortOrder.LayoutOrder
+Converted["_UIListLayout"].VerticalAlignment = Enum.VerticalAlignment.Bottom
+Converted["_UIListLayout"].Parent = Converted["_Notifications"]
+
+baseNotif = Converted["_Template"]
+
+function tween(go, t, dir)
+	dir = dir or "in"
+	local obj = go
+
+	local startTransparency = (dir == "in") and 1 or 0
+	local endTransparency = (dir == "in") and 0.05 or 1
+	local startPos = (dir == "in") and UDim2.new(1.2, 0, obj.Position.Y.Scale, obj.Position.Y.Offset) or obj.Position
+	local endPos = (dir == "in") and UDim2.new(0.5, 0, obj.Position.Y.Scale, obj.Position.Y.Offset) or UDim2.new(1.2, 0, obj.Position.Y.Scale, obj.Position.Y.Offset)
+
+	if dir == "in" then
+		obj.Position = startPos
+	end
+	obj.BackgroundTransparency = startTransparency
+
+	local tweenInfo = TweenInfo.new(t, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, 0, false, 0)
+
+	local tween = game:GetService("TweenService"):Create(obj, tweenInfo, {
+		BackgroundTransparency = endTransparency,
+		Position = endPos
+	})
+	tween:Play()
+
+	if dir == "out" then
+		for _, e in pairs(obj:GetDescendants()) do
+			if e:IsA("GuiObject") then
+				if e:IsA("TextLabel") then
+					local texttween = game:GetService("TweenService"):Create(e, tweenInfo, {
+						TextTransparency = 1
+					})
+					texttween:Play()
+				elseif e:IsA("ImageLabel") or e:IsA("ImageButton") then
+					local imgt = game:GetService("TweenService"):Create(e, tweenInfo, {
+						ImageTransparency = 1
+					})
+					imgt:Play()
+				elseif e:IsA("UIStroke") then
+					local st = game:GetService("TweenService"):Create(e, tweenInfo, {
+						Transparency = 1
+					})
+					st:Play()
+				end
+			end
+		end
+	end
+end
+
+function lib:MakeNotification(nt)
+	nt = nt or { Title = "Notification", Text = "This is a test notification.", Duration = 5 }
+
+	local holder = Converted["_Notifications"]
+
+	-- Collect existing visible notifications
+	local existingNotifs = {}
+	for _, child in ipairs(holder:GetChildren()) do
+		if child:IsA("Frame") and child.Visible and child.Name == "EnhancedNotification" then
+			table.insert(existingNotifs, child)
+		end
+	end
+
+	-- ✅ Smooth upward animation for existing notifications
+	for _, notif in ipairs(existingNotifs) do
+		local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+		local newOffset = notif.Position.Y.Offset - (notif.AbsoluteSize.Y + 8) -- Move up height + padding
+		game:GetService("TweenService"):Create(notif, tweenInfo, {
+			Position = UDim2.new(0.5, 0, 0, newOffset)
+		}):Play()
+	end
+
+	-- ✅ Clone new notification
+	local newNotif = baseNotif:Clone()
+	newNotif.Parent = holder
+	newNotif.Title.Text = nt.Title
+	newNotif.Description.Text = nt.Text
+	newNotif.Visible = true
+	newNotif.Name = "EnhancedNotification"
+	newNotif.Position = UDim2.new(0.5, 0, 0, 0) -- Always start at bottom
+
+	-- ✅ Stack order
+	newNotif.LayoutOrder = tick() -- Higher means lower in Bottom-aligned list
+
+	-- ✅ Auto-remove oldest if more than 5
+	if #existingNotifs >= 5 then
+		local oldest = existingNotifs[1] -- Lowest order
+		task.spawn(function()
+			tween(oldest, 0.3, "out")
+			task.wait(0.3)
+			oldest:Destroy()
+		end)
+	end
+
+	-- ✅ Show animation
+	tween(newNotif, 0.4, "in")
+
+	task.delay(nt.Duration, function()
+		tween(newNotif, 0.3, "out")
+		task.wait(0.3)
+		newNotif:Destroy()
+	end)
+end
+
+return lib
