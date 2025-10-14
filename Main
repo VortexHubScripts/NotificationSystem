@@ -1,10 +1,6 @@
---// Load the Notification UI Library
-local fnl = (function()
-    --[[
--- = Enhanced Notification Library v5 = --
-Modern, animated notification system with glassmorphic design
-Notifications stack upward properly
-]]--
+--// Enhanced Notification Library v5
+--// Modern, animated notification system with glassmorphic design
+--// Notifications stack upward properly
 
 local lib = {}
 local TweenService = game:GetService("TweenService")
@@ -138,10 +134,10 @@ Converted["_UIListLayout"].SortOrder = Enum.SortOrder.LayoutOrder
 Converted["_UIListLayout"].VerticalAlignment = Enum.VerticalAlignment.Bottom
 Converted["_UIListLayout"].Parent = Converted["_Notifications"]
 
-baseNotif = Converted["_Template"]
+local baseNotif = Converted["_Template"]
 
 -- Enhanced animation function
-function animateNotification(notif, duration, dir)
+local function animateNotification(notif, duration, dir)
 	dir = dir or "in"
 	
 	if dir == "in" then
@@ -244,26 +240,19 @@ function lib:MakeNotification(nt)
 		task.spawn(function()
 			animateNotification(oldest, nil, "out")
 			task.wait(0.4)
-			if oldest.Parent then
-				oldest:Destroy()
-			end
+			oldest:Destroy()
 		end)
 	end
 
 	-- Create new notification
 	local newNotif = baseNotif:Clone()
 	newNotif.Parent = holder
+	newNotif.Title.Text = nt.Title
+	newNotif.Description.Text = nt.Text
 	newNotif.Visible = true
 	newNotif.Name = "EnhancedNotification"
 	newNotif.LayoutOrder = notificationOrder
 	newNotif.Position = UDim2.new(0.5, 0, 0, 0)
-	
-	-- Set text content using WaitForChild to ensure elements exist
-	local title = newNotif:WaitForChild("Title")
-	local description = newNotif:WaitForChild("Description")
-	
-	title.Text = nt.Title
-	description.Text = nt.Text
 
 	-- Play entrance animation
 	animateNotification(newNotif, nt.Duration, "in")
@@ -298,28 +287,13 @@ function lib:MakeNotification(nt)
 	return newNotif
 end
 
-return lib
-end)()
-
---// Create a Simple Notification Function
-function notify(title, text, duration)
-    title = title or "Notification"
-    text = text or "No message."
-    duration = duration or 5
-
-    fnl:MakeNotification({
-        Title = title,
-        Text = text,
-        Duration = duration
-    })
+-- Helper function for easy usage
+function lib:Notify(title, text, duration)
+	return self:MakeNotification({
+		Title = title or "Notification",
+		Text = text or "No message.",
+		Duration = duration or 5
+	})
 end
 
---[[ Example Usage
-notify("Success!", "Operation completed successfully", 4)
-task.wait(1)
-notify("Warning", "This is a warning message", 5)
-task.wait(1)
-notify("Info", "Here's some information for you", 4)
-task.wait(1)
-notify("Alert", "Something requires your attention", 6)
---]]
+return lib
