@@ -1,154 +1,160 @@
---// Enhanced Notification Library v5
---// Notifications stack upward properly
+--// Persistent Enhanced Notification Library v5
+--// Notifications stack upward properly across executions
 
-local lib = {}
 local TweenService = game:GetService("TweenService")
-
--- Utility function to create random strings for naming
-local function RandomString(len)
-	len = len or 32
-	local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	local str = ""
-	for i = 1, len do
-		str = str .. chars:sub(math.random(1, #chars), math.random(1, #chars))
-	end
-	return str
-end
-
--- Create ScreenGui
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.DisplayOrder = 999999999
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.Name = RandomString()
-ScreenGui.Parent = game:GetService("CoreGui")
-
--- Container for all notifications
-local Container = Instance.new("Frame")
-Container.AnchorPoint = Vector2.new(1, 1)
-Container.BackgroundTransparency = 1
-Container.BorderSizePixel = 0
-Container.Position = UDim2.new(1, -20, 1, -20) -- Bottom-right
-Container.Size = UDim2.new(0, 380, 0, 700)
-Container.Name = "NotificationContainer"
-Container.Parent = ScreenGui
-
--- Template notification
-local function createTemplate()
-	local Template = Instance.new("Frame")
-	Template.AnchorPoint = Vector2.new(0.5, 0.5)
-	Template.BackgroundColor3 = Color3.fromRGB(16, 18, 24)
-	Template.BackgroundTransparency = 0.05
-	Template.BorderSizePixel = 0
-	Template.Size = UDim2.new(1, 0, 0, 110)
-	Template.Visible = false
-
-	local UICorner = Instance.new("UICorner")
-	UICorner.CornerRadius = UDim.new(0, 16)
-	UICorner.Parent = Template
-
-	local Title = Instance.new("TextLabel")
-	Title.Name = "Title"
-	Title.Font = Enum.Font.GothamBold
-	Title.TextSize = 17
-	Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-	Title.TextXAlignment = Enum.TextXAlignment.Left
-	Title.BackgroundTransparency = 1
-	Title.Position = UDim2.new(0, 70, 0, 22)
-	Title.Size = UDim2.new(1, -115, 0, 22)
-	Title.TextWrapped = true
-	Title.Parent = Template
-
-	local Description = Instance.new("TextLabel")
-	Description.Name = "Description"
-	Description.Font = Enum.Font.Gotham
-	Description.TextSize = 14
-	Description.TextColor3 = Color3.fromRGB(200, 205, 215)
-	Description.TextXAlignment = Enum.TextXAlignment.Left
-	Description.TextYAlignment = Enum.TextYAlignment.Top
-	Description.BackgroundTransparency = 1
-	Description.Position = UDim2.new(0, 70, 0, 48)
-	Description.Size = UDim2.new(1, -115, 0, 46)
-	Description.TextWrapped = true
-	Description.Parent = Template
-
-	local CloseButton = Instance.new("TextButton")
-	CloseButton.Name = "CloseButton"
-	CloseButton.AnchorPoint = Vector2.new(1, 0)
-	CloseButton.BackgroundTransparency = 0.3
-	CloseButton.BackgroundColor3 = Color3.fromRGB(40, 42, 50)
-	CloseButton.BorderSizePixel = 0
-	CloseButton.Position = UDim2.new(1, -12, 0, 12)
-	CloseButton.Size = UDim2.new(0, 28, 0, 28)
-	CloseButton.Font = Enum.Font.GothamBold
-	CloseButton.Text = "×"
-	CloseButton.TextColor3 = Color3.fromRGB(200, 205, 215)
-	CloseButton.TextSize = 20
-	CloseButton.Parent = Template
-
-	return Template
-end
-
-local baseTemplate = createTemplate()
 local notifHeight = 110
 local spacing = 12
 
--- Reposition all notifications upward
-local function shiftNotificationsUp(newNotif)
-	for _, notif in ipairs(Container:GetChildren()) do
-		if notif:IsA("Frame") and notif.Visible and notif ~= newNotif then
-			local goal = {Position = notif.Position + UDim2.new(0, 0, 0, -(notifHeight + spacing))}
-			TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), goal):Play()
-		end
-	end
+-- Only create/load GUI once
+if not _G.NotificationLib then
+
+    local lib = {}
+
+    -- Utility function to create random strings for naming
+    local function RandomString(len)
+        len = len or 32
+        local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        local str = ""
+        for i = 1, len do
+            str = str .. chars:sub(math.random(1, #chars), math.random(1, #chars))
+        end
+        return str
+    end
+
+    -- Create ScreenGui if it doesn't exist
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.DisplayOrder = 999999999
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    ScreenGui.IgnoreGuiInset = true
+    ScreenGui.Name = "PersistentNotificationGUI"
+    ScreenGui.Parent = game:GetService("CoreGui")
+
+    -- Container for notifications
+    local Container = Instance.new("Frame")
+    Container.AnchorPoint = Vector2.new(1, 1)
+    Container.BackgroundTransparency = 1
+    Container.BorderSizePixel = 0
+    Container.Position = UDim2.new(1, -20, 1, -20)
+    Container.Size = UDim2.new(0, 380, 0, 700)
+    Container.Name = "NotificationContainer"
+    Container.Parent = ScreenGui
+
+    -- Template notification
+    local function createTemplate()
+        local Template = Instance.new("Frame")
+        Template.AnchorPoint = Vector2.new(0.5, 0.5)
+        Template.BackgroundColor3 = Color3.fromRGB(16, 18, 24)
+        Template.BackgroundTransparency = 0.05
+        Template.BorderSizePixel = 0
+        Template.Size = UDim2.new(1, 0, 0, notifHeight)
+        Template.Visible = false
+
+        local UICorner = Instance.new("UICorner")
+        UICorner.CornerRadius = UDim.new(0, 16)
+        UICorner.Parent = Template
+
+        local Title = Instance.new("TextLabel")
+        Title.Name = "Title"
+        Title.Font = Enum.Font.GothamBold
+        Title.TextSize = 17
+        Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Title.TextXAlignment = Enum.TextXAlignment.Left
+        Title.BackgroundTransparency = 1
+        Title.Position = UDim2.new(0, 70, 0, 22)
+        Title.Size = UDim2.new(1, -115, 0, 22)
+        Title.TextWrapped = true
+        Title.Parent = Template
+
+        local Description = Instance.new("TextLabel")
+        Description.Name = "Description"
+        Description.Font = Enum.Font.Gotham
+        Description.TextSize = 14
+        Description.TextColor3 = Color3.fromRGB(200, 205, 215)
+        Description.TextXAlignment = Enum.TextXAlignment.Left
+        Description.TextYAlignment = Enum.TextYAlignment.Top
+        Description.BackgroundTransparency = 1
+        Description.Position = UDim2.new(0, 70, 0, 48)
+        Description.Size = UDim2.new(1, -115, 0, 46)
+        Description.TextWrapped = true
+        Description.Parent = Template
+
+        local CloseButton = Instance.new("TextButton")
+        CloseButton.Name = "CloseButton"
+        CloseButton.AnchorPoint = Vector2.new(1, 0)
+        CloseButton.BackgroundTransparency = 0.3
+        CloseButton.BackgroundColor3 = Color3.fromRGB(40, 42, 50)
+        CloseButton.BorderSizePixel = 0
+        CloseButton.Position = UDim2.new(1, -12, 0, 12)
+        CloseButton.Size = UDim2.new(0, 28, 0, 28)
+        CloseButton.Font = Enum.Font.GothamBold
+        CloseButton.Text = "×"
+        CloseButton.TextColor3 = Color3.fromRGB(200, 205, 215)
+        CloseButton.TextSize = 20
+        CloseButton.Parent = Template
+
+        return Template
+    end
+
+    local baseTemplate = createTemplate()
+
+    -- Move old notifications up
+    local function shiftNotificationsUp(newNotif)
+        for _, notif in ipairs(Container:GetChildren()) do
+            if notif:IsA("Frame") and notif.Visible and notif ~= newNotif then
+                local goal = {Position = notif.Position + UDim2.new(0, 0, 0, -(notifHeight + spacing))}
+                TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), goal):Play()
+            end
+        end
+    end
+
+    -- Main notification function
+    function lib:MakeNotification(nt)
+        nt = nt or {Title = "Notification", Text = "This is a test notification.", Duration = 5}
+
+        local notif = baseTemplate:Clone()
+        notif.Name = "Notification_" .. RandomString(8)
+        notif.Title.Text = nt.Title or "Notification"
+        notif.Description.Text = nt.Text or "No message provided."
+        notif.Visible = true
+        notif.Position = UDim2.new(0.5, 0, 1, -20)
+        notif.AnchorPoint = Vector2.new(0.5, 0.5)
+        notif.Size = UDim2.new(1, 0, 0, notifHeight)
+        notif.BackgroundTransparency = 0.05
+        notif.Parent = Container
+
+        shiftNotificationsUp(notif)
+
+        -- Close button
+        notif.CloseButton.MouseButton1Click:Connect(function()
+            if notif.Parent then
+                TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+                    Position = notif.Position + UDim2.new(0, 0, 0, -50),
+                    BackgroundTransparency = 1
+                }):Play()
+                task.wait(0.4)
+                if notif.Parent then notif:Destroy() end
+            end
+        end)
+
+        -- Auto-remove
+        if nt.Duration then
+            task.delay(nt.Duration, function()
+                if notif and notif.Parent then
+                    TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+                        Position = notif.Position + UDim2.new(0, 0, 0, -50),
+                        BackgroundTransparency = 1
+                    }):Play()
+                    task.wait(0.4)
+                    if notif.Parent then notif:Destroy() end
+                end
+            end)
+        end
+
+        return notif
+    end
+
+    _G.NotificationLib = lib -- store globally
 end
 
--- Main notification function
-function lib:MakeNotification(nt)
-	nt = nt or {Title = "Notification", Text = "This is a test notification.", Duration = 5}
-
-	local notif = baseTemplate:Clone()
-	notif.Name = "Notification_" .. RandomString(8)
-	notif.Title.Text = nt.Title or "Notification"
-	notif.Description.Text = nt.Text or "No message provided."
-	notif.Visible = true
-	notif.Position = UDim2.new(0.5, 0, 1, -20) -- Start at base spot
-	notif.AnchorPoint = Vector2.new(0.5, 0.5)
-	notif.Size = UDim2.new(1, 0, 0, notifHeight)
-	notif.BackgroundTransparency = 0.05
-	notif.Parent = Container
-
-	-- Move old notifications up
-	shiftNotificationsUp(notif)
-
-	-- Close button
-	notif.CloseButton.MouseButton1Click:Connect(function()
-		if notif.Parent then
-			TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-				Position = notif.Position + UDim2.new(0, 0, 0, -50),
-				BackgroundTransparency = 1
-			}):Play()
-			task.wait(0.4)
-			if notif.Parent then notif:Destroy() end
-		end
-	end)
-
-	-- Auto-remove after duration
-	if nt.Duration then
-		task.delay(nt.Duration, function()
-			if notif and notif.Parent then
-				TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-					Position = notif.Position + UDim2.new(0, 0, 0, -50),
-					BackgroundTransparency = 1
-				}):Play()
-				task.wait(0.4)
-				if notif.Parent then notif:Destroy() end
-			end
-		end)
-	end
-
-	return notif
-end
-
-return lib
+return _G.NotificationLib
